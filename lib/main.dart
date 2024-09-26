@@ -13,7 +13,7 @@ class CoinFlipApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Coin Toss Game',
+      title: 'Coin Toss',
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.purple,
@@ -58,8 +58,7 @@ class _CoinFlipPageState extends State<CoinFlipPage>
   late AnimationController _controller;
   late Animation<double> _animationY;
   late Animation<double> _animationRotationX;
-  late Animation<double> _animationRotationY;
-  late Animation<double> _animationScale;
+  late Animation<double> _animationTiltY; // Tilt on the Y-axis for realism
   bool _isTossing = false;
   late ConfettiController _confettiController; // Confetti controller
 
@@ -70,19 +69,24 @@ class _CoinFlipPageState extends State<CoinFlipPage>
       duration: const Duration(seconds: 2),
       vsync: this,
     );
-    _animationY = Tween<double>(begin: 0, end: -300).animate(CurvedAnimation(
+
+    // Y-axis movement (coin moving up and down)
+    _animationY = Tween<double>(begin: 0, end: -250).animate(CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOut, // Ease out to mimic realistic slowing down
     ));
-    _animationRotationX = Tween<double>(begin: 0, end: 4 * pi)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
-    _animationRotationY = Tween<double>(begin: 0, end: 4 * pi)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
-    _animationScale = Tween<double>(begin: 1.0, end: 0.7)
+
+    // X-axis rotation (coin flipping)
+    _animationRotationX = Tween<double>(begin: 0, end: 2 * pi * 4) // Four full flips
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    // Slight Y-axis tilt for realism
+    _animationTiltY = Tween<double>(begin: 0, end: pi / 6) // Small tilt angle
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     // Initialize the confetti controller
-    _confettiController = ConfettiController(duration: const Duration(seconds: 1)); // Faster confetti duration
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 1));
   }
 
   void _tossCoin() {
@@ -117,7 +121,8 @@ class _CoinFlipPageState extends State<CoinFlipPage>
                   SnackBar(
                     content: const Text(
                       'Good Guess!',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     backgroundColor: Colors.green,
                   ),
@@ -128,7 +133,8 @@ class _CoinFlipPageState extends State<CoinFlipPage>
                   SnackBar(
                     content: const Text(
                       'Try Again!',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     backgroundColor: Colors.red,
                   ),
@@ -137,7 +143,6 @@ class _CoinFlipPageState extends State<CoinFlipPage>
               _isTossing = false;
               _userGuess = null;
               _controller.reset();
-              // No need to play confetti again here; only play on correct guess
             });
           });
         });
@@ -168,7 +173,8 @@ class _CoinFlipPageState extends State<CoinFlipPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Coin Toss Game'),
+        centerTitle: true,
+        title: const Text('Coin Toss',style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),),
         backgroundColor: theme.colorScheme.primary,
       ),
       body: Stack(
@@ -209,22 +215,43 @@ class _CoinFlipPageState extends State<CoinFlipPage>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.secondary,
                       ),
-                      child: const Text('Toss Coin'),
+                      child: const Text('Toss',style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20),),
                     ),
                     const SizedBox(height: 20),
-                    _buildAnimatedCoin(),
+                    _buildAnimatedCoin(), // Coin flip animation
                     const SizedBox(height: 20),
                     _buildScoreCard(),
-                    const SizedBox(height: 20),
-                    OutlinedButton(
+                    const SizedBox(height: 20),OutlinedButton(
                       onPressed: _resetGame,
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: theme.colorScheme.secondary),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 12),
+                        side: BorderSide(color: theme.colorScheme.secondary, width: 2), // Thicker border
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12), // Padding
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20), // Rounded corners
+                        ),
+                      ).copyWith(
+                        // Add hover and pressed effects
+                        backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                              (Set<MaterialState> states) {
+                            if (states.contains(MaterialState.pressed)) {
+                              return theme.colorScheme.secondary.withOpacity(0.3); // Color when pressed
+                            } else if (states.contains(MaterialState.hovered)) {
+                              return theme.colorScheme.secondary.withOpacity(0.2); // Color when hovered
+                            }
+                            return Colors.transparent; // Default background
+                          },
+                        ),
                       ),
-                      child: const Text('Reset Game'),
+                      child: Text(
+                        'Reset',
+                        style: TextStyle(
+                          color: theme.colorScheme.secondary, // Text color
+                          fontSize: 20, // Font size
+                          fontWeight: FontWeight.bold, // Bold text
+                        ),
+                      ),
                     ),
+
                   ],
                 ),
               ),
@@ -237,7 +264,13 @@ class _CoinFlipPageState extends State<CoinFlipPage>
               confettiController: _confettiController,
               blastDirectionality: BlastDirectionality.explosive,
               shouldLoop: false,
-              colors: const [Colors.green, Colors.blue, Colors.pink, Colors.orange, Colors.purple],
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.pink,
+                Colors.orange,
+                Colors.purple
+              ],
             ),
           ),
         ],
@@ -292,10 +325,9 @@ class _CoinFlipPageState extends State<CoinFlipPage>
       builder: (context, child) {
         return Transform(
           transform: Matrix4.identity()
-            ..translate(0.0, _animationY.value)
-            ..rotateX(_animationRotationX.value)
-            ..rotateY(_animationRotationY.value)
-            ..scale(_animationScale.value),
+            ..translate(0.0, _animationY.value) // Y-axis movement
+            ..rotateX(_animationRotationX.value) // X-axis rotation (flip)
+            ..rotateY(_animationTiltY.value), // Small Y-axis tilt for realism
           alignment: Alignment.center,
           child: Image.asset(
             _coinResult == 'Heads'
@@ -321,7 +353,8 @@ class _CoinFlipPageState extends State<CoinFlipPage>
           children: [
             Text(
               'Score',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white),
+              style:
+              Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 10),
             Text(
